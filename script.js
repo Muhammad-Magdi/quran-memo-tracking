@@ -8,6 +8,11 @@ function initApp() {
   loadData();
   setupEventListeners();
   renderRecentReads();
+
+  // Show welcome modal for first-time users
+  if (!localStorage.getItem("tutorialCompleted")) {
+    showWelcomeModal();
+  }
 }
 
 // Load data from localStorage
@@ -102,20 +107,34 @@ function setupEventListeners() {
   document
     .getElementById("cancel-edit-btn")
     .addEventListener("click", hideEditNameForm);
+
+  // Welcome modal functionality
+  if (document.getElementById("next-slide")) {
+    document.getElementById("next-slide").addEventListener("click", nextSlide);
+    document.getElementById("prev-slide").addEventListener("click", prevSlide);
+    document
+      .getElementById("skip-tutorial")
+      .addEventListener("click", skipTutorial);
+    document
+      .getElementById("finish-tutorial")
+      .addEventListener("click", finishTutorial);
+  }
 }
 
 // Set read type and update button styles
 function setReadType(type) {
-  // Update button styles
+  // Update button classes
   const bookBtn = document.getElementById("read-type-book");
   const heartBtn = document.getElementById("read-type-heart");
 
+  // Remove all selection classes
+  bookBtn.classList.remove("selected", "book", "heart");
+  heartBtn.classList.remove("selected", "book", "heart");
+
   if (type === "book") {
-    bookBtn.style.backgroundColor = "var(--primary-color)";
-    heartBtn.style.backgroundColor = "var(--secondary-color)";
+    bookBtn.classList.add("selected", "book");
   } else {
-    bookBtn.style.backgroundColor = "var(--secondary-color)";
-    heartBtn.style.backgroundColor = "var(--primary-color)";
+    heartBtn.classList.add("selected", "heart");
   }
 }
 
@@ -154,13 +173,25 @@ function handleSearch(e) {
   }
 }
 
+// Show inline error message
+function showError(message) {
+  const errorDiv = document.getElementById("search-error");
+  errorDiv.textContent = message;
+  errorDiv.style.display = "flex";
+
+  // Hide error after 5 seconds
+  setTimeout(() => {
+    errorDiv.style.display = "none";
+  }, 5000);
+}
+
 // Add a new read record
 function addReadRecord(readType) {
   const searchInput = document.getElementById("quad-search");
   const searchTerm = searchInput.value.trim();
 
   if (!searchTerm) {
-    alert("يرجى اختيار ربع أولاً");
+    showError("يرجى اختيار ربع أولاً");
     return;
   }
 
@@ -178,7 +209,7 @@ function addReadRecord(readType) {
     );
 
     if (!quad) {
-      alert("لم يتم العثور على الربع. يرجى التأكد من الرقم أو الاسم");
+      showError("لم يتم العثور على الربع. يرجى التأكد من الرقم أو الاسم");
       return;
     }
 
@@ -198,32 +229,38 @@ function addReadRecord(readType) {
   searchInput.value = "";
   currentQuadId = null;
   document.getElementById("search-results").innerHTML = "";
+  document.getElementById("search-error").style.display = "none";
 
   // Update recent reads
   renderRecentReads();
 
   // Update quads grid if on history tab
   const historyTab = document.getElementById("history");
-  if (historyTab && historyTab.classList.contains("active")) {
+  if (historyTab?.classList.contains("active")) {
     renderQuadsGrid();
   }
 
   // Update statistics if on stats tab
   const statsTab = document.getElementById("stats");
-  if (statsTab && statsTab.classList.contains("active")) {
+  if (statsTab?.classList.contains("active")) {
     renderStatistics();
   }
 
   // Show success feedback
+  showSuccessMessage(`✓ تم إضافة التلاوة بنجاح! (الربع ${quadId})`);
+}
+
+// Show success message
+function showSuccessMessage(message) {
   const successMsg = document.createElement("div");
-  successMsg.textContent = "✓ تم إضافة التلاوة بنجاح";
+  successMsg.textContent = message;
   successMsg.style.cssText =
-    "position: fixed; top: 30px; right: 30px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 18px 30px; border-radius: 12px; z-index: 1000; box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.5); font-weight: 600; font-size: 15px; animation: slideIn 0.3s ease;";
+    "position: fixed; top: 30px; right: 30px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 22px 35px; border-radius: 16px; z-index: 1001; box-shadow: 0 10px 40px -5px rgba(16, 185, 129, 0.5); font-weight: 700; font-size: 16px; animation: slideIn 0.3s ease; max-width: 90%; text-align: center;";
   document.body.appendChild(successMsg);
   setTimeout(() => {
     successMsg.style.animation = "slideOut 0.3s ease";
     setTimeout(() => successMsg.remove(), 300);
-  }, 1700);
+  }, 2500);
 }
 
 // Render recent reads with filters
@@ -280,7 +317,11 @@ function renderRecentReads() {
 
   // Render
   if (recentQuads.length === 0) {
-    container.innerHTML = "<p>لا توجد أرباع مطابقة للفلتر</p>";
+    container.innerHTML = `<div class="empty-state" style="display: block;">
+      <div class="empty-state-icon">📚</div>
+      <h3>لا توجد تلاوات</h3>
+      <p>ابدأ بإضافة أول تلاوة باستخدام النموذج أعلاه!</p>
+    </div>`;
     return;
   }
 
@@ -661,6 +702,92 @@ function formatDate(dateString) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+// Welcome Modal Functions
+let currentSlide = 0;
+const totalSlides = 4;
+
+function showWelcomeModal() {
+  const modal = document.getElementById("welcome-modal");
+  if (modal) {
+    modal.classList.add("active");
+  }
+}
+
+function hideWelcomeModal() {
+  const modal = document.getElementById("welcome-modal");
+  if (modal) {
+    modal.classList.remove("active");
+  }
+}
+
+function nextSlide() {
+  if (currentSlide < totalSlides - 1) {
+    // Hide current slide
+    document
+      .querySelector(`.tutorial-slide[data-slide="${currentSlide}"]`)
+      .classList.remove("active");
+    document.querySelectorAll(".dot")[currentSlide].classList.remove("active");
+
+    currentSlide++;
+
+    // Show next slide
+    document
+      .querySelector(`.tutorial-slide[data-slide="${currentSlide}"]`)
+      .classList.add("active");
+    document.querySelectorAll(".dot")[currentSlide].classList.add("active");
+
+    // Update button visibility
+    if (currentSlide === totalSlides - 1) {
+      document.getElementById("next-slide").style.display = "none";
+      document.getElementById("skip-tutorial").style.display = "none";
+      document.getElementById("finish-tutorial").style.display = "inline-block";
+    }
+
+    if (currentSlide > 0) {
+      document.getElementById("prev-slide").style.display = "inline-block";
+    }
+  }
+}
+
+function prevSlide() {
+  if (currentSlide > 0) {
+    // Hide current slide
+    document
+      .querySelector(`.tutorial-slide[data-slide="${currentSlide}"]`)
+      .classList.remove("active");
+    document.querySelectorAll(".dot")[currentSlide].classList.remove("active");
+
+    currentSlide--;
+
+    // Show previous slide
+    document
+      .querySelector(`.tutorial-slide[data-slide="${currentSlide}"]`)
+      .classList.add("active");
+    document.querySelectorAll(".dot")[currentSlide].classList.add("active");
+
+    // Update button visibility
+    if (currentSlide === 0) {
+      document.getElementById("prev-slide").style.display = "none";
+    }
+
+    if (currentSlide < totalSlides - 1) {
+      document.getElementById("next-slide").style.display = "inline-block";
+      document.getElementById("skip-tutorial").style.display = "inline-block";
+      document.getElementById("finish-tutorial").style.display = "none";
+    }
+  }
+}
+
+function skipTutorial() {
+  localStorage.setItem("tutorialCompleted", "true");
+  hideWelcomeModal();
+}
+
+function finishTutorial() {
+  localStorage.setItem("tutorialCompleted", "true");
+  hideWelcomeModal();
 }
 
 // Initialize the app when DOM is loaded
