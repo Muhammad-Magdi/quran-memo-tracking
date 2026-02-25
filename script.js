@@ -509,6 +509,57 @@ function saveQuadName() {
   }
 }
 
+// Calculate streaks from a set of date strings
+function calculateStreaks(daysSet) {
+  if (daysSet.size === 0) return { current: 0, longest: 0 };
+
+  // Convert to sorted array of Date objects (normalized to midnight)
+  const sortedDays = Array.from(daysSet)
+    .map((d) => {
+      const dt = new Date(d);
+      return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime();
+    })
+    .sort((a, b) => a - b);
+
+  const today = new Date();
+  const todayNorm = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate()
+  ).getTime();
+  const oneDay = 86400000;
+
+  let longest = 1;
+  let currentRun = 1;
+
+  for (let i = 1; i < sortedDays.length; i++) {
+    if (sortedDays[i] - sortedDays[i - 1] === oneDay) {
+      currentRun++;
+      if (currentRun > longest) longest = currentRun;
+    } else {
+      currentRun = 1;
+    }
+  }
+
+  // Current streak: count backwards from today (or yesterday)
+  let currentStreak = 0;
+  const lastDay = sortedDays[sortedDays.length - 1];
+  if (lastDay === todayNorm || lastDay === todayNorm - oneDay) {
+    currentStreak = 1;
+    let checkDate = lastDay;
+    for (let i = sortedDays.length - 2; i >= 0; i--) {
+      if (checkDate - sortedDays[i] === oneDay) {
+        currentStreak++;
+        checkDate = sortedDays[i];
+      } else {
+        break;
+      }
+    }
+  }
+
+  return { current: currentStreak, longest };
+}
+
 // Render statistics
 function renderStatistics() {
   const container = document.getElementById("stats-content");
@@ -518,24 +569,56 @@ function renderStatistics() {
   let bookReads = 0;
   let heartReads = 0;
   let readQuads = 0;
+  let heartQuads = 0;
   let namedQuads = 0;
   let totalDays = new Set();
   const readsByDate = {};
+  let mostReadQuad = { id: 0, name: "", count: 0 };
+  let weekReads = 0;
+  let monthReads = 0;
+
+  const now = new Date();
+  // Start of current week (Saturday)
+  const dayOfWeek = now.getDay();
+  const daysSinceSat = (dayOfWeek + 1) % 7;
+  const weekStart = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - daysSinceSat
+  );
+  // Start of current month
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   quads.forEach((quad) => {
     if (quad.reads.length > 0) {
       readQuads++;
+      if (quad.reads.some((r) => r.type === "heart")) {
+        heartQuads++;
+      }
     }
     if (quad.name) {
       namedQuads++;
     }
+
+    if (quad.reads.length > mostReadQuad.count) {
+      mostReadQuad = {
+        id: quad.id,
+        name: quad.name,
+        count: quad.reads.length,
+      };
+    }
+
     quad.reads.forEach((read) => {
       totalReads++;
       if (read.type === "book") bookReads++;
       if (read.type === "heart") heartReads++;
 
-      const date = new Date(read.date).toDateString();
+      const readDate = new Date(read.date);
+      const date = readDate.toDateString();
       totalDays.add(date);
+
+      if (readDate >= weekStart) weekReads++;
+      if (readDate >= monthStart) monthReads++;
 
       // Count readings per date for heat map
       if (!readsByDate[date]) {
@@ -546,9 +629,22 @@ function renderStatistics() {
   });
 
   const completionPercentage = ((readQuads / totalQuads) * 100).toFixed(1);
+  const memorizationPercentage =
+    readQuads > 0 ? ((heartQuads / totalQuads) * 100).toFixed(1) : "0.0";
+  const bookPercent =
+    totalReads > 0 ? ((bookReads / totalReads) * 100).toFixed(0) : 0;
+  const heartPercent =
+    totalReads > 0 ? ((heartReads / totalReads) * 100).toFixed(0) : 0;
+
+  const streaks = calculateStreaks(totalDays);
 
   // Generate heat map for last 365 days
   const heatMapData = generateHeatMap(readsByDate);
+
+  const mostReadLabel =
+    mostReadQuad.count > 0
+      ? mostReadQuad.name || `الربع ${mostReadQuad.id}`
+      : "-";
 
   container.innerHTML = `
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
@@ -569,15 +665,63 @@ function renderStatistics() {
                 <div style="opacity: 0.9;">من ${totalQuads} ربع</div>
             </div>
         </div>
-        
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+            <div style="background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); color: white; padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(236, 72, 153, 0.4);">
+                <div style="font-size: 36px; font-weight: 700; margin-bottom: 8px;">${streaks.current}</div>
+                <div style="opacity: 0.9;">السلسلة الحالية (أيام)</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(249, 115, 22, 0.4);">
+                <div style="font-size: 36px; font-weight: 700; margin-bottom: 8px;">${streaks.longest}</div>
+                <div style="opacity: 0.9;">أطول سلسلة (أيام)</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); color: white; padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.4);">
+                <div style="font-size: 36px; font-weight: 700; margin-bottom: 8px;">${weekReads}</div>
+                <div style="opacity: 0.9;">تلاوات هذا الأسبوع</div>
+            </div>
+            <div style="background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white; padding: 24px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(6, 182, 212, 0.4);">
+                <div style="font-size: 36px; font-weight: 700; margin-bottom: 8px;">${monthReads}</div>
+                <div style="opacity: 0.9;">تلاوات هذا الشهر</div>
+            </div>
+        </div>
+
         <div style="background: #f8fafc; padding: 24px; border-radius: 16px; margin-bottom: 20px;">
             <h3 style="margin-bottom: 16px; color: var(--dark-color);">نسبة الإتمام</h3>
             <div style="background: white; height: 24px; border-radius: 12px; overflow: hidden; box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.1);">
-                <div style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); height: 100%; width: ${completionPercentage}%; transition: width 0.5s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px;">${completionPercentage}%</div>
+                <div style="background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); height: 100%; width: ${completionPercentage}%; transition: width 0.5s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; min-width: ${
+    completionPercentage > 0 ? "40px" : "0"
+  };">${completionPercentage}%</div>
+            </div>
+            <div style="color: #64748b; font-size: 0.85rem; margin-top: 8px;">${readQuads} من ${totalQuads} ربع</div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 24px; border-radius: 16px; margin-bottom: 20px;">
+            <h3 style="margin-bottom: 16px; color: var(--dark-color);">نسبة الحفظ (أرباع بها تسميع)</h3>
+            <div style="background: white; height: 24px; border-radius: 12px; overflow: hidden; box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.1);">
+                <div style="background: linear-gradient(90deg, #10b981 0%, #059669 100%); height: 100%; width: ${memorizationPercentage}%; transition: width 0.5s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; min-width: ${
+    memorizationPercentage > 0 ? "40px" : "0"
+  };">${memorizationPercentage}%</div>
+            </div>
+            <div style="color: #64748b; font-size: 0.85rem; margin-top: 8px;">${heartQuads} من ${totalQuads} ربع</div>
+        </div>
+
+        <div style="background: #f8fafc; padding: 24px; border-radius: 16px; margin-bottom: 20px;">
+            <h3 style="margin-bottom: 16px; color: var(--dark-color);">نسبة القراءة مقابل التسميع</h3>
+            <div style="background: white; height: 24px; border-radius: 12px; overflow: hidden; box-shadow: inset 0 2px 4px 0 rgba(0,0,0,0.1); display: flex;">
+                <div style="background: #3b82f6; height: 100%; width: ${bookPercent}%; transition: width 0.5s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px; min-width: ${
+    bookPercent > 0 ? "30px" : "0"
+  };">${bookPercent}%</div>
+                <div style="background: #10b981; height: 100%; width: ${heartPercent}%; transition: width 0.5s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 12px; min-width: ${
+    heartPercent > 0 ? "30px" : "0"
+  };">${heartPercent}%</div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px; color: #64748b; font-size: 0.85rem;">
+                <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 12px; height: 12px; background: #3b82f6; border-radius: 3px; display: inline-block;"></span>قراءة (${bookReads})</span>
+                <span style="display: flex; align-items: center; gap: 6px;"><span style="width: 12px; height: 12px; background: #10b981; border-radius: 3px; display: inline-block;"></span>تسميع (${heartReads})</span>
             </div>
         </div>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 20px;">
             <div style="background: #f8fafc; padding: 20px; border-radius: 12px;">
                 <div style="font-size: 28px; font-weight: 700; margin-bottom: 8px;">${namedQuads}</div>
                 <div style="color: #64748b;">أرباع مسماة</div>
@@ -594,8 +738,18 @@ function renderStatistics() {
                 }</div>
                 <div style="color: #64748b;">متوسط التلاوات/اليوم</div>
             </div>
+            <div style="background: #f8fafc; padding: 20px; border-radius: 12px; ${
+              mostReadQuad.count > 0 ? "cursor: pointer;" : ""
+            }" ${
+    mostReadQuad.count > 0
+      ? `onclick="showQuadHistory(${mostReadQuad.id})"`
+      : ""
+  }>
+                <div style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">${mostReadLabel}</div>
+                <div style="color: #64748b;">أكثر ربع تلاوة (${mostReadQuad.count})</div>
+            </div>
         </div>
-        
+
         <div style="background: #f8fafc; padding: 24px; border-radius: 16px; margin-top: 20px;">
             <h3 style="margin-bottom: 16px; color: var(--dark-color); display: flex; justify-content: space-between; align-items: center;">
                 <span>خريطة النشاط</span>
