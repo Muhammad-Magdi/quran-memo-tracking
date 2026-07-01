@@ -123,6 +123,13 @@ function setupEventListeners(state, refs) {
 
   refs.statsContent.addEventListener("mouseenter", showHeatMapTooltip, true);
   refs.statsContent.addEventListener("mouseleave", hideHeatMapTooltip, true);
+  refs.statsContent.addEventListener("click", (event) => {
+    const mostReadButton = event.target.closest("[data-most-read-quad-id]");
+
+    if (mostReadButton) {
+      showQuadHistory(state, refs, Number.parseInt(mostReadButton.dataset.mostReadQuadId, 10));
+    }
+  });
 
   refs.nextSlideButton.addEventListener("click", () => moveTutorialSlide(state, refs, 1));
   refs.prevSlideButton.addEventListener("click", () => moveTutorialSlide(state, refs, -1));
@@ -405,20 +412,44 @@ function renderStatistics(state, refs) {
 
   refs.statsContent.append(
     renderStatsCards(statistics),
-    renderProgress(statistics.completionPercentage),
+    renderStatsCards(statistics, "activity"),
+    renderProgress({
+      title: "نسبة الإتمام",
+      percentage: statistics.completionPercentage,
+      detail: `${statistics.readQuads} من ${TOTAL_QUADS} ربع`,
+      variant: "primary",
+    }),
+    renderProgress({
+      title: "نسبة الحفظ (أرباع بها تسميع)",
+      percentage: statistics.memorizationPercentage,
+      detail: `${statistics.heartQuads} من ${TOTAL_QUADS} ربع`,
+      variant: "heart",
+    }),
+    renderReadTypeRatio(statistics),
     renderSecondaryStats(statistics),
     renderHeatMap(heatMapData)
   );
 }
 
-function renderStatsCards(statistics) {
+function renderStatsCards(statistics, variant = "summary") {
   const grid = createElement("div", { className: "stats-grid" });
-  grid.append(
-    createStatsCard("إجمالي التلاوات", statistics.totalReads, "primary"),
-    createStatsCard("قراءة", statistics.bookReads, "book"),
-    createStatsCard("تسميع", statistics.heartReads, "heart"),
-    createStatsCard(`من ${TOTAL_QUADS} ربع`, statistics.readQuads, "warm")
-  );
+
+  if (variant === "activity") {
+    grid.append(
+      createStatsCard("السلسلة الحالية (أيام)", statistics.streaks.current, "rose"),
+      createStatsCard("أطول سلسلة (أيام)", statistics.streaks.longest, "orange"),
+      createStatsCard("تلاوات هذا الأسبوع", statistics.weekReads, "violet"),
+      createStatsCard("تلاوات هذا الشهر", statistics.monthReads, "cyan")
+    );
+  } else {
+    grid.append(
+      createStatsCard("إجمالي التلاوات", statistics.totalReads, "primary"),
+      createStatsCard("قراءة", statistics.bookReads, "book"),
+      createStatsCard("تسميع", statistics.heartReads, "heart"),
+      createStatsCard(`من ${TOTAL_QUADS} ربع`, statistics.readQuads, "warm")
+    );
+  }
+
   return grid;
 }
 
@@ -431,18 +462,63 @@ function createStatsCard(label, value, variant) {
   return card;
 }
 
-function renderProgress(completionPercentage) {
+function renderProgress({ title, percentage, detail, variant }) {
   const section = createElement("div", { className: "stats-panel" });
   const progressTrack = createElement("div", { className: "progress-track" });
   const progressBar = createElement("div", {
-    className: "progress-bar",
-    text: `${completionPercentage}%`,
+    className: `progress-bar progress-bar-${variant}`,
+    text: `${percentage}%`,
   });
-  progressBar.style.setProperty("--progress-width", `${completionPercentage}%`);
+  progressBar.style.setProperty("--progress-width", `${percentage}%`);
 
   progressTrack.append(progressBar);
-  section.append(createElement("h3", { text: "نسبة الإتمام" }), progressTrack);
+  section.append(
+    createElement("h3", { text: title }),
+    progressTrack,
+    createElement("div", { className: "stats-panel-detail", text: detail })
+  );
   return section;
+}
+
+function renderReadTypeRatio(statistics) {
+  const section = createElement("div", { className: "stats-panel" });
+  const ratioTrack = createElement("div", { className: "ratio-track" });
+  const bookBar = createElement("div", {
+    className: "ratio-bar ratio-bar-book",
+    text: `${statistics.bookPercent}%`,
+  });
+  const heartBar = createElement("div", {
+    className: "ratio-bar ratio-bar-heart",
+    text: `${statistics.heartPercent}%`,
+  });
+  bookBar.style.setProperty("--ratio-width", `${statistics.bookPercent}%`);
+  heartBar.style.setProperty("--ratio-width", `${statistics.heartPercent}%`);
+
+  ratioTrack.append(bookBar, heartBar);
+  section.append(
+    createElement("h3", { text: "نسبة القراءة مقابل التسميع" }),
+    ratioTrack,
+    renderReadTypeLegend(statistics)
+  );
+  return section;
+}
+
+function renderReadTypeLegend(statistics) {
+  const legend = createElement("div", { className: "ratio-legend" });
+  legend.append(
+    createLegendItem("قراءة", statistics.bookReads, "book"),
+    createLegendItem("تسميع", statistics.heartReads, "heart")
+  );
+  return legend;
+}
+
+function createLegendItem(label, count, variant) {
+  const item = createElement("span", { className: "ratio-legend-item" });
+  item.append(
+    createElement("span", { className: `ratio-legend-swatch ratio-legend-swatch-${variant}` }),
+    createElement("span", { text: `${label} (${count})` })
+  );
+  return item;
 }
 
 function renderSecondaryStats(statistics) {
@@ -450,7 +526,8 @@ function renderSecondaryStats(statistics) {
   grid.append(
     createSecondaryStat("أرباع مسماة", statistics.namedQuads),
     createSecondaryStat("أيام النشاط", statistics.activeDays),
-    createSecondaryStat("متوسط التلاوات/اليوم", statistics.averageReadsPerDay)
+    createSecondaryStat("متوسط التلاوات/اليوم", statistics.averageReadsPerDay),
+    createMostReadStat(statistics.mostReadQuad)
   );
   return grid;
 }
@@ -461,6 +538,28 @@ function createSecondaryStat(label, value) {
     createElement("div", { className: "secondary-stat-value", text: value }),
     createElement("div", { className: "secondary-stat-label", text: label })
   );
+  return stat;
+}
+
+function createMostReadStat(mostReadQuad) {
+  const label = mostReadQuad.count > 0 ? mostReadQuad.name || `الربع ${mostReadQuad.id}` : "-";
+  const stat = createElement(mostReadQuad.count > 0 ? "button" : "div", {
+    className: `secondary-stat ${mostReadQuad.count > 0 ? "secondary-stat-button" : ""}`,
+  });
+
+  if (mostReadQuad.count > 0) {
+    stat.type = "button";
+    stat.dataset.mostReadQuadId = String(mostReadQuad.id);
+  }
+
+  stat.append(
+    createElement("div", { className: "secondary-stat-title", text: label }),
+    createElement("div", {
+      className: "secondary-stat-label",
+      text: `أكثر ربع تلاوة (${mostReadQuad.count})`,
+    })
+  );
+
   return stat;
 }
 

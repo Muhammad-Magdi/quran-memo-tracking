@@ -154,22 +154,40 @@ export function getReadCounts(quad) {
   };
 }
 
-export function calculateStatistics(quads, totalQuads = TOTAL_QUADS) {
+export function calculateStatistics(quads, totalQuads = TOTAL_QUADS, now = new Date()) {
   const readsByDate = {};
   const totalDays = new Set();
+  const weekStart = getStartOfWeek(now);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   let totalReads = 0;
   let bookReads = 0;
   let heartReads = 0;
   let readQuads = 0;
+  let heartQuads = 0;
   let namedQuads = 0;
+  let weekReads = 0;
+  let monthReads = 0;
+  let mostReadQuad = { id: 0, name: "", count: 0 };
 
   quads.forEach((quad) => {
     if (quad.reads.length > 0) {
       readQuads += 1;
+
+      if (quad.reads.some((read) => read.type === READ_TYPES.HEART)) {
+        heartQuads += 1;
+      }
     }
 
     if (quad.name) {
       namedQuads += 1;
+    }
+
+    if (quad.reads.length > mostReadQuad.count) {
+      mostReadQuad = {
+        id: quad.id,
+        name: quad.name,
+        count: quad.reads.length,
+      };
     }
 
     quad.reads.forEach((read) => {
@@ -183,23 +201,87 @@ export function calculateStatistics(quads, totalQuads = TOTAL_QUADS) {
         heartReads += 1;
       }
 
-      const date = new Date(read.date).toDateString();
+      const readDate = new Date(read.date);
+      const date = readDate.toDateString();
       totalDays.add(date);
       readsByDate[date] = (readsByDate[date] ?? 0) + 1;
+
+      if (readDate >= weekStart) {
+        weekReads += 1;
+      }
+
+      if (readDate >= monthStart) {
+        monthReads += 1;
+      }
     });
   });
+
+  const completionPercentage = ((readQuads / totalQuads) * 100).toFixed(1);
+  const memorizationPercentage = ((heartQuads / totalQuads) * 100).toFixed(1);
+  const bookPercent = totalReads > 0 ? ((bookReads / totalReads) * 100).toFixed(0) : "0";
+  const heartPercent = totalReads > 0 ? ((heartReads / totalReads) * 100).toFixed(0) : "0";
 
   return {
     totalReads,
     bookReads,
     heartReads,
     readQuads,
+    heartQuads,
     namedQuads,
     activeDays: totalDays.size,
-    completionPercentage: ((readQuads / totalQuads) * 100).toFixed(1),
+    weekReads,
+    monthReads,
+    completionPercentage,
+    memorizationPercentage,
+    bookPercent,
+    heartPercent,
     averageReadsPerDay: totalReads > 0 ? (totalReads / totalDays.size).toFixed(1) : "0",
+    streaks: calculateStreaks(totalDays, now),
+    mostReadQuad,
     readsByDate,
   };
+}
+
+export function calculateStreaks(daysSet, now = new Date()) {
+  if (daysSet.size === 0) {
+    return { current: 0, longest: 0 };
+  }
+
+  const sortedDays = Array.from(daysSet)
+    .map((dateString) => normalizeToLocalMidnight(new Date(dateString)).getTime())
+    .sort((a, b) => a - b);
+  const today = normalizeToLocalMidnight(now).getTime();
+  const oneDay = 86400000;
+  let longest = 1;
+  let currentRun = 1;
+
+  for (let index = 1; index < sortedDays.length; index += 1) {
+    if (sortedDays[index] - sortedDays[index - 1] === oneDay) {
+      currentRun += 1;
+      longest = Math.max(longest, currentRun);
+    } else {
+      currentRun = 1;
+    }
+  }
+
+  const lastDay = sortedDays[sortedDays.length - 1];
+  let current = 0;
+
+  if (lastDay === today || lastDay === today - oneDay) {
+    current = 1;
+    let checkDate = lastDay;
+
+    for (let index = sortedDays.length - 2; index >= 0; index -= 1) {
+      if (checkDate - sortedDays[index] !== oneDay) {
+        break;
+      }
+
+      current += 1;
+      checkDate = sortedDays[index];
+    }
+  }
+
+  return { current, longest };
 }
 
 export function generateHeatMapData(readsByDate, now = new Date()) {
@@ -269,4 +351,13 @@ function normalizeReads(reads) {
 
 function isValidReadType(readType) {
   return readType === READ_TYPES.BOOK || readType === READ_TYPES.HEART;
+}
+
+function getStartOfWeek(date) {
+  const daysSinceSaturday = (date.getDay() + 1) % 7;
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() - daysSinceSaturday);
+}
+
+function normalizeToLocalMidnight(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }

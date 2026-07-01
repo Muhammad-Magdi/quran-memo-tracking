@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
   addReadToQuad,
   calculateStatistics,
+  calculateStreaks,
   createInitialQuads,
   generateHeatMapData,
   getHeatMapLevel,
@@ -61,15 +62,49 @@ describe("domain helpers", () => {
     quads = addReadToQuad(quads, 1, "book", new Date("2026-01-01T10:00:00.000Z"));
     quads = addReadToQuad(quads, 1, "heart", new Date("2026-01-01T12:00:00.000Z"));
 
-    expect(calculateStatistics(quads, 2)).toMatchObject({
+    expect(calculateStatistics(quads, 2, new Date("2026-01-02T10:00:00.000Z"))).toMatchObject({
       totalReads: 2,
       bookReads: 1,
       heartReads: 1,
       readQuads: 1,
+      heartQuads: 1,
       namedQuads: 1,
       activeDays: 1,
       completionPercentage: "50.0",
+      memorizationPercentage: "50.0",
+      bookPercent: "50",
+      heartPercent: "50",
       averageReadsPerDay: "2.0",
+      streaks: { current: 1, longest: 1 },
+      mostReadQuad: { id: 1, name: "الفاتحة", count: 2 },
+    });
+  });
+
+  it("calculates current and longest streaks from active days", () => {
+    const days = new Set([
+      new Date("2026-01-01T10:00:00.000Z").toDateString(),
+      new Date("2026-01-02T10:00:00.000Z").toDateString(),
+      new Date("2026-01-04T10:00:00.000Z").toDateString(),
+      new Date("2026-01-05T10:00:00.000Z").toDateString(),
+      new Date("2026-01-06T10:00:00.000Z").toDateString(),
+    ]);
+
+    expect(calculateStreaks(days, new Date("2026-01-06T12:00:00.000Z"))).toEqual({
+      current: 3,
+      longest: 3,
+    });
+  });
+
+  it("counts week and month reads for the current reporting period", () => {
+    let quads = createInitialQuads(2);
+    quads = addReadToQuad(quads, 1, "book", new Date("2026-01-30T10:00:00.000Z"));
+    quads = addReadToQuad(quads, 1, "heart", new Date("2026-02-01T10:00:00.000Z"));
+    quads = addReadToQuad(quads, 2, "heart", new Date("2026-02-03T10:00:00.000Z"));
+
+    expect(calculateStatistics(quads, 2, new Date("2026-02-04T10:00:00.000Z"))).toMatchObject({
+      weekReads: 2,
+      monthReads: 2,
+      heartQuads: 2,
     });
   });
 

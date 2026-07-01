@@ -29,10 +29,18 @@
  * @property {number} bookReads
  * @property {number} heartReads
  * @property {number} readQuads
+ * @property {number} heartQuads
  * @property {number} namedQuads
  * @property {number} activeDays
+ * @property {number} weekReads
+ * @property {number} monthReads
  * @property {string} completionPercentage
+ * @property {string} memorizationPercentage
+ * @property {string} bookPercent
+ * @property {string} heartPercent
  * @property {string} averageReadsPerDay
+ * @property {{current: number, longest: number}} streaks
+ * @property {{id: number, name: string, count: number}} mostReadQuad
  * @property {Record<string, number>} readsByDate
  */
 
