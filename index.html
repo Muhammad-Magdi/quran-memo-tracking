@@ -1,158 +1,158 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>متابعة تلاوة القرآن</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
     <!-- Welcome Modal -->
     <div id="welcome-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1>مرحباً بك في تطبيق متابعة تلاوة القرآن</h1>
-            </div>
-            <div class="modal-body">
-                <div class="tutorial-slide active" data-slide="0">
-                    <div class="tutorial-icon">📖</div>
-                    <h2>تطبيق بسيط لمتابعة التلاوة</h2>
-                    <p>يساعدك هذا التطبيق على تتبع تلاوة القرآن الكريم عبر 240 ربع</p>
-                </div>
-                <div class="tutorial-slide" data-slide="1">
-                    <div class="tutorial-icon">🔍</div>
-                    <h2>كيفية الاستخدام</h2>
-                    <p>1. ابحث عن الربع بالرقم أو الاسم</p>
-                    <p>2. اختر نوع التلاوة (قراءة من المصحف أو تسميع من القلب)</p>
-                    <p>3. اضغط حفظ - سيتم تسجيل التلاوة تلقائياً</p>
-                </div>
-                <div class="tutorial-slide" data-slide="2">
-                    <div class="tutorial-icon">📊</div>
-                    <h2>متابعة التقدم</h2>
-                    <p>تابع إحصائياتك في صفحة الإحصائيات</p>
-                    <p>اعرض سجل تلاواتك في صفحة السجل</p>
-                </div>
-                <div class="tutorial-slide" data-slide="3">
-                    <div class="tutorial-icon">✅</div>
-                    <h2>أنت جاهز!</h2>
-                    <p>ابدأ بإضافة أول تلاوة الآن</p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="prev-slide" class="btn-small" style="display: none;">السابق</button>
-                <button id="next-slide" class="btn-small">التالي</button>
-                <button id="skip-tutorial" class="btn-small">تخطي</button>
-                <button id="finish-tutorial" class="btn-small" style="display: none;">ابدأ الآن</button>
-            </div>
-            <div class="tutorial-dots">
-                <span class="dot active"></span>
-                <span class="dot"></span>
-                <span class="dot"></span>
-                <span class="dot"></span>
-            </div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1>مرحباً بك في تطبيق متابعة تلاوة القرآن</h1>
         </div>
+        <div class="modal-body">
+          <div class="tutorial-slide active" data-slide="0">
+            <div class="tutorial-icon">📖</div>
+            <h2>تطبيق بسيط لمتابعة التلاوة</h2>
+            <p>يساعدك هذا التطبيق على تتبع تلاوة القرآن الكريم عبر 240 ربع</p>
+          </div>
+          <div class="tutorial-slide" data-slide="1">
+            <div class="tutorial-icon">🔍</div>
+            <h2>كيفية الاستخدام</h2>
+            <p>1. ابحث عن الربع بالرقم أو الاسم</p>
+            <p>2. اختر نوع التلاوة (قراءة من المصحف أو تسميع من القلب)</p>
+            <p>3. اضغط حفظ - سيتم تسجيل التلاوة تلقائياً</p>
+          </div>
+          <div class="tutorial-slide" data-slide="2">
+            <div class="tutorial-icon">📊</div>
+            <h2>متابعة التقدم</h2>
+            <p>تابع إحصائياتك في صفحة الإحصائيات</p>
+            <p>اعرض سجل تلاواتك في صفحة السجل</p>
+          </div>
+          <div class="tutorial-slide" data-slide="3">
+            <div class="tutorial-icon">✅</div>
+            <h2>أنت جاهز!</h2>
+            <p>ابدأ بإضافة أول تلاوة الآن</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="prev-slide" class="btn-small hidden">السابق</button>
+          <button id="next-slide" class="btn-small">التالي</button>
+          <button id="skip-tutorial" class="btn-small">تخطي</button>
+          <button id="finish-tutorial" class="btn-small hidden">ابدأ الآن</button>
+        </div>
+        <div class="tutorial-dots">
+          <span class="dot active"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </div>
+      </div>
     </div>
 
     <div class="container">
-        <header>
-            <h1>متابعة تلاوة القرآن</h1>
-        </header>
-        
-        <div class="tabs">
-            <div class="tab active" data-tab="main">🏠 الشاشة الرئيسية</div>
-            <div class="tab" data-tab="history">📋 سجل التلاوة</div>
-            <div class="tab" data-tab="stats">📊 إحصائيات</div>
-        </div>
-        
-        <!-- Main Screen -->
-        <div id="main" class="tab-content active">
-            <div class="card">
-                <h2>إضافة تلاوة جديدة</h2>
-                <div class="form-group">
-                    <label for="quad-search">🔍 البحث عن ربع (بالرقم أو الاسم)</label>
-                    <div class="search-container">
-                        <input type="text" id="quad-search" placeholder="مثال: 1 أو 'الفاتحة'">
-                        <div id="search-results" class="search-results"></div>
-                    </div>
-                    <div id="search-error" class="error-message" style="display: none;"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label>نوع التلاوة</label>
-                    <div class="read-type-buttons">
-                        <button id="read-type-book" class="btn-read-type" data-read-type="book">
-                            <span class="btn-icon">📖</span>
-                            <span class="btn-text">قراءة</span>
-                            <span class="btn-tooltip">قراءة من المصحف</span>
-                        </button>
-                        <button id="read-type-heart" class="btn-read-type" data-read-type="heart">
-                            <span class="btn-icon">💚</span>
-                            <span class="btn-text">تسميع</span>
-                            <span class="btn-tooltip">تسميع من القلب</span>
-                        </button>
-                    </div>
-                </div>
+      <header>
+        <h1>متابعة تلاوة القرآن</h1>
+      </header>
+
+      <div class="tabs">
+        <div class="tab active" data-tab="main">🏠 الشاشة الرئيسية</div>
+        <div class="tab" data-tab="history">📋 سجل التلاوة</div>
+        <div class="tab" data-tab="stats">📊 إحصائيات</div>
+      </div>
+
+      <!-- Main Screen -->
+      <div id="main" class="tab-content active">
+        <div class="card">
+          <h2>إضافة تلاوة جديدة</h2>
+          <div class="form-group">
+            <label for="quad-search">🔍 البحث عن ربع (بالرقم أو الاسم)</label>
+            <div class="search-container">
+              <input type="text" id="quad-search" placeholder="مثال: 1 أو 'الفاتحة'" />
+              <div id="search-results" class="search-results"></div>
             </div>
-            
-            <div class="card">
-                <h2>آخر 24 ربع</h2>
-                
-                <div class="filters">
-                    <input type="date" id="filter-date" placeholder="تصفية حسب التاريخ">
-                    <select id="filter-type">
-                        <option value="all">جميع أنواع التلاوة</option>
-                        <option value="book">قراءة</option>
-                        <option value="heart">تسميع</option>
-                    </select>
-                    <input type="text" id="filter-quad" placeholder="تصفية حسب الربع">
-                </div>
-                
-                <div id="recent-reads-list" class="reads-list">
-                    <div class="empty-state" style="display: none;">
-                        <div class="empty-state-icon">📚</div>
-                        <h3>لا توجد تلاوات بعد</h3>
-                        <p>ابدأ بإضافة أول تلاوة باستخدام النموذج أعلاه!</p>
-                    </div>
-                </div>
+            <div id="search-error" class="error-message hidden"></div>
+          </div>
+
+          <div class="form-group">
+            <label>نوع التلاوة</label>
+            <div class="read-type-buttons">
+              <button id="read-type-book" class="btn-read-type" data-read-type="book">
+                <span class="btn-icon">📖</span>
+                <span class="btn-text">قراءة</span>
+                <span class="btn-tooltip">قراءة من المصحف</span>
+              </button>
+              <button id="read-type-heart" class="btn-read-type" data-read-type="heart">
+                <span class="btn-icon">💚</span>
+                <span class="btn-text">تسميع</span>
+                <span class="btn-tooltip">تسميع من القلب</span>
+              </button>
             </div>
+          </div>
         </div>
-        
-        <!-- Quad History Screen -->
-        <div id="history" class="tab-content">
-            <div class="card">
-                <h2 id="history-quad-title">جميع الأرباع</h2>
-                <div id="quads-grid" class="quads-grid"></div>
+
+        <div class="card">
+          <h2>آخر 24 ربع</h2>
+
+          <div class="filters">
+            <input type="date" id="filter-date" placeholder="تصفية حسب التاريخ" />
+            <select id="filter-type">
+              <option value="all">جميع أنواع التلاوة</option>
+              <option value="book">قراءة</option>
+              <option value="heart">تسميع</option>
+            </select>
+            <input type="text" id="filter-quad" placeholder="تصفية حسب الربع" />
+          </div>
+
+          <div id="recent-reads-list" class="reads-list">
+            <div class="empty-state hidden">
+              <div class="empty-state-icon">📚</div>
+              <h3>لا توجد تلاوات بعد</h3>
+              <p>ابدأ بإضافة أول تلاوة باستخدام النموذج أعلاه!</p>
             </div>
+          </div>
         </div>
-        
-        <!-- Quad Detail View -->
-        <div id="quad-detail" class="tab-content">
-            <div class="card">
-                <div class="history-header">
-                    <h2 id="detail-quad-title">سجل تلاوة الربع</h2>
-                    <button id="edit-name-btn" class="btn-small">تعديل الاسم</button>
-                    <button id="back-to-grid-btn" class="btn-small">العودة إلى القائمة</button>
-                </div>
-                
-                <div id="edit-name-form" class="edit-name-form">
-                    <input type="text" id="new-quad-name" placeholder="أدخل اسم جديد للربع">
-                    <button id="save-name-btn" class="btn-small">حفظ</button>
-                    <button id="cancel-edit-btn" class="btn-small">إلغاء</button>
-                </div>
-                
-                <div id="quad-reads-list"></div>
-            </div>
+      </div>
+
+      <!-- Quad History Screen -->
+      <div id="history" class="tab-content">
+        <div class="card">
+          <h2 id="history-quad-title">جميع الأرباع</h2>
+          <div id="quads-grid" class="quads-grid"></div>
         </div>
-        
-        <!-- Statistics Screen -->
-        <div id="stats" class="tab-content">
-            <div class="card">
-                <h2>إحصائيات عامة</h2>
-                <div id="stats-content"></div>
-            </div>
+      </div>
+
+      <!-- Quad Detail View -->
+      <div id="quad-detail" class="tab-content">
+        <div class="card">
+          <div class="history-header">
+            <h2 id="detail-quad-title">سجل تلاوة الربع</h2>
+            <button id="edit-name-btn" class="btn-small">تعديل الاسم</button>
+            <button id="back-to-grid-btn" class="btn-small">العودة إلى القائمة</button>
+          </div>
+
+          <div id="edit-name-form" class="edit-name-form hidden">
+            <input type="text" id="new-quad-name" placeholder="أدخل اسم جديد للربع" />
+            <button id="save-name-btn" class="btn-small">حفظ</button>
+            <button id="cancel-edit-btn" class="btn-small">إلغاء</button>
+          </div>
+
+          <div id="quad-reads-list"></div>
         </div>
+      </div>
+
+      <!-- Statistics Screen -->
+      <div id="stats" class="tab-content">
+        <div class="card">
+          <h2>إحصائيات عامة</h2>
+          <div id="stats-content"></div>
+        </div>
+      </div>
     </div>
 
-    <script src="script.js"></script>
-</body>
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>
